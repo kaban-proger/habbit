@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="План">
+<meta name="theme-color" content="#0d0d0f">
+<title>План</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,system-ui,sans-serif;background:#0d0d0f;color:#eee;min-height:100vh;padding:calc(56px + env(safe-area-inset-top)) 0 env(safe-area-inset-bottom)}
+button{font:inherit;color:inherit;cursor:pointer}
+input,textarea{font:inherit;color:#eee;background:#1c1c1e;border:1px solid #2c2c2e;border-radius:10px;padding:10px 12px;width:100%;outline:none}
+[hidden]{display:none!important}
+
+/* top bar */
+.topbar{position:fixed;top:0;left:0;right:0;height:calc(52px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 12px 0;display:flex;align-items:center;gap:12px;background:#0d0d0f;border-bottom:1px solid #1c1c1e;z-index:5}
+.burger{background:none;border:0;width:40px;height:40px;display:flex;flex-direction:column;justify-content:center;gap:5px;padding:0 8px}
+.burger span{display:block;height:2px;background:#eee;border-radius:2px}
+#pageTitle{font-size:18px;font-weight:600}
+
+/* side menu */
+.menu{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:10}
+.menu.on{display:block}
+.menu nav{background:#1c1c1e;width:270px;max-width:80%;height:100%;padding:calc(64px + env(safe-area-inset-top)) 12px 12px;display:flex;flex-direction:column;gap:6px}
+.menu nav button{background:none;border:0;text-align:left;padding:14px 12px;border-radius:10px;font-size:17px;color:#bbb}
+.menu nav button.on{background:#2c2c2e;color:#30d158;font-weight:600}
+
+.page{display:none;padding:12px}
+.page.on{display:block}
+.hint{color:#777;font-size:14px;padding:12px 4px}
+.row{display:flex;gap:8px;margin:10px 0}
+.btn{background:#30d158;color:#000;border:0;border-radius:10px;padding:0 16px;font-weight:600}
+.ghost{background:#1c1c1e;border:1px solid #2c2c2e;border-radius:10px;padding:8px 12px}
+.ghost.on{border-color:#30d158;color:#30d158}
+
+/* calendar */
+.calhead{display:flex;justify-content:space-between;align-items:center;margin:8px 0 12px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.wd{text-align:center;font-size:12px;color:#777;padding:4px 0}
+.day{position:relative;text-align:center;padding:10px 0;border-radius:10px;background:#1c1c1e;font-size:15px;border:1px solid transparent}
+.day.today{border-color:#555}
+.day.sel{background:#30d158;color:#000;font-weight:700}
+.day i{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%}
+.day i.pend{background:#888}
+.day i.ok{background:#30d158}
+.day i.bad{background:#ff453a}
+.day.sel i{background:#000}
+.dayTitle{font-size:17px;font-weight:600;margin:16px 4px 8px;text-transform:capitalize}
+
+/* swipe cards (tasks and goals) */
+.task-wrap{position:relative;overflow:hidden;border-radius:12px;margin-bottom:8px;--n:4}
+.task{position:relative;z-index:1;display:flex;align-items:center;gap:12px;background:#1c1c1e;padding:12px;touch-action:pan-y;transition:transform .2s ease}
+.task.drag{transition:none}
+.task-wrap.open .task{transform:translateX(calc(var(--n) * -64px))}
+.task span{flex:1;font-size:16px;word-break:break-word;min-width:0}
+.task span.done{text-decoration:line-through;color:#777}
+.task input.edit{flex:1;padding:6px 8px;font-size:16px}
+.actions{position:absolute;top:0;right:0;bottom:0;display:flex}
+.ac{width:64px;border:0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700}
+.ac svg{width:22px;height:22px}
+.ac.mv,.ac.dn{background:#30d158;color:#fff}
+.ac.ed{background:#3a3a3c;color:#fff}
+.ac.rm{background:#fff;color:#ff3b30}
+.st{width:30px;height:30px;border-radius:50%;border:2px solid #30d158;background:none;font-size:16px;font-weight:700;color:#30d158;flex-shrink:0}
+.st.s1,.st.s-1{background:#30d158;color:#fff}
+
+/* goal detail */
+#goalTitle{font-size:22px;font-weight:600;margin:12px 4px;word-break:break-word}
+#goalDetails{min-height:60vh;resize:none;background:none;border:none;padding:4px;font-size:15px;font-weight:300;color:#bbb;line-height:1.5}
+
+/* habits */
+.range{display:flex;gap:8px;margin:8px 0 12px}
+.range .ghost{flex:1}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -12px;padding:0 12px}
+table{border-collapse:separate;border-spacing:4px 6px;font-size:12px}
+th{font-weight:500;color:#777;text-align:center;min-width:34px;line-height:1.2}
+th.td{color:#30d158}
+th.hn{text-align:left;color:#eee;font-size:14px;min-width:120px;max-width:150px;position:sticky;left:0;background:#0d0d0f;white-space:normal}
+.rm-habit{color:#666;margin-left:6px;padding:0 4px}
+.c{width:30px;height:30px;border-radius:8px;background:#1c1c1e;border:1px solid #2c2c2e;font-size:16px;font-weight:700}
+.c.v1{background:#30d158;color:#000;border-color:#30d158}
+.c.v-1{color:#30d158;border-color:#30d158;background:none}
+td:last-child{color:#aaa;font-size:12px}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="burger" id="burger" aria-label="Меню"><span></span><span></span><span></span></button>
+  <div id="pageTitle">To do list</div>
+</header>
+
+<div class="menu" id="menu">
+  <nav>
+    <button data-tab="tasks" class="on">To do list</button>
+    <button data-tab="habits">Habit tracker</button>
+    <button data-tab="goals">Long term goals</button>
+  </nav>
+</div>
+
+<section class="page on" id="tasks">
+  <div class="calhead">
+    <button class="ghost" id="prev">‹</button>
+    <strong id="mTitle" style="text-transform:capitalize"></strong>
+    <button class="ghost" id="next">›</button>
+  </div>
+  <div class="cal" id="cal"></div>
+  <div class="dayTitle" id="dayTitle"></div>
+  <div id="tasklist"></div>
+  <div class="row">
+    <input id="newTask" placeholder="Новое дело" enterkeyhint="done">
+    <button class="btn" id="addTask">+</button>
+  </div>
+</section>
+
+<section class="page" id="habits">
+  <div class="range">
+    <button class="ghost on" data-range="7">7 дней</button>
+    <button class="ghost" data-range="14">2 недели</button>
+    <button class="ghost" data-range="30">Месяц</button>
+  </div>
+  <div class="scroll" id="grid"></div>
+  <div class="row">
+    <input id="newHabit" placeholder="Новая привычка" enterkeyhint="done">
+    <button class="btn" id="addHabit">+</button>
+  </div>
+  <p class="hint">Тап по клетке: + (сделал) → − (не сделал) → пусто.</p>
+</section>
+
+<section class="page" id="goals">
+  <div id="goalsList">
+    <div id="goallist"></div>
+    <div class="row">
+      <input id="newGoal" placeholder="Новая цель" enterkeyhint="done">
+      <button class="btn" id="addGoal">+</button>
+    </div>
+  </div>
+  <div id="goalDetail" hidden>
+    <div class="row"><button class="ghost" id="backGoals">← Назад</button></div>
+    <h2 id="goalTitle"></h2>
+    <textarea id="goalDetails" placeholder="Подробности цели"></textarea>
+  </div>
+</section>
+
+<script>
+const KEY = 'plan-v1';
+let S = JSON.parse(localStorage.getItem(KEY) || '{"tasks":{},"habits":[],"goals":[]}');
+S.goals = S.goals || [];
+const save = () => localStorage.setItem(KEY, JSON.stringify(S));
+const uid = () => Math.random().toString(36).slice(2, 9);
+const pad = n => String(n).padStart(2, '0');
+const key = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const WD = ['пн','вт','ср','чт','пт','сб','вс'];
+const $ = id => document.getElementById(id);
+const todayKey = key(new Date());
+const TITLES = {tasks: 'To do list', habits: 'Habit tracker', goals: 'Long term goals'};
+const PENCIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+const TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/></svg>';
+
+let selected = new Date();
+let month = new Date(selected.getFullYear(), selected.getMonth(), 1);
+let range = 7;
+let editing = null;      // {type:'task'|'goal', id}
+let currentGoal = null;  // id of goal open in detail view
+
+/* ---------- menu & tabs ---------- */
+function showTab(t) {
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('on', p.id === t));
+  document.querySelectorAll('.menu nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  $('pageTitle').textContent = TITLES[t];
+  if (t === 'tasks') { renderCal(); renderDay(); }
+  if (t === 'habits') renderHabits();
+  if (t === 'goals') { closeGoal(); renderGoals(); }
+  $('menu').classList.remove('on');
+}
+$('burger').onclick = () => $('menu').classList.add('on');
+$('menu').onclick = e => {
+  if (e.target.id === 'menu') $('menu').classList.remove('on');
+  const b = e.target.closest('[data-tab]');
+  if (b) showTab(b.dataset.tab);
+};
+
+/* ---------- calendar ---------- */
+function renderCal() {
+  const y = month.getFullYear(), m = month.getMonth();
+  $('mTitle').textContent = month.toLocaleDateString('ru-RU', {month: 'long', year: 'numeric'});
+  let html = WD.map(w => `<div class="wd">${w}</div>`).join('');
+  const offset = (month.getDay() + 6) % 7;
+  for (let i = 0; i < offset; i++) html += '<div></div>';
+  const days = new Date(y, m + 1, 0).getDate();
+  for (let n = 1; n <= days; n++) {
+    const k = key(new Date(y, m, n));
+    const list = S.tasks[k] || [];
+    let dot = '';
+    if (list.length) {
+      const pending = list.some(t => t.s === 0);
+      const bad = list.some(t => t.s === -1);
+      dot = `<i class="${pending ? 'pend' : bad ? 'bad' : 'ok'}"></i>`;
+    }
+    const cls = ['day', k === todayKey ? 'today' : '', k === key(selected) ? 'sel' : ''].join(' ');
+    html += `<div class="${cls}" data-k="${k}">${n}${dot}</div>`;
+  }
+  $('cal').innerHTML = html;
+}
+$('cal').onclick = e => {
+  const d = e.target.closest('.day'); if (!d) return;
+  const [y, m, n] = d.dataset.k.split('-').map(Number);
+  selected = new Date(y, m - 1, n);
+  renderCal(); renderDay();
+};
+$('prev').onclick = () => { month = new Date(month.getFullYear(), month.getMonth() - 1, 1); renderCal(); };
+$('next').onclick = () => { month = new Date(month.getFullYear(), month.getMonth() + 1, 1); renderCal(); };
+
+/* ---------- day tasks ---------- */
+const isEditing = (type, id) => editing && editing.type === type && editing.id === id;
+function focusEdit() {
+  const i = document.querySelector('input.edit');
+  if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+}
+function renderDay() {
+  const k = key(selected);
+  $('dayTitle').textContent = selected.toLocaleDateString('ru-RU', {weekday: 'long', day: 'numeric', month: 'long'});
+  const list = S.tasks[k] || [];
+  $('tasklist').innerHTML = list.length ? list.map(t => `
+    <div class="task-wrap">
+      <div class="actions">
+        <button class="ac mv" data-act="move" data-id="${t.id}">→</button>
+        <button class="ac ed" data-act="edit" data-id="${t.id}">${PENCIL}</button>
+        <button class="ac rm" data-act="del" data-id="${t.id}">${TRASH}</button>
+        <button class="ac dn" data-act="done" data-id="${t.id}">✓</button>
+      </div>
+      <div class="task">
+        <button class="st s${t.s}" data-act="cyc" data-id="${t.id}">${t.s === 1 ? '✓' : t.s === -1 ? '−' : ''}</button>
+        ${isEditing('task', t.id)
+          ? `<input class="edit" value="${esc(t.text)}">`
+          : `<span class="${t.s === 1 ? 'done' : ''}">${esc(t.text)}</span>`}
+      </div>
+    </div>`).join('') : '<p class="hint">Дел нет. Добавь ниже.</p>';
+  focusEdit();
+}
+$('tasklist').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const k = key(selected);
+  const list = S.tasks[k] || [];
+  const t = list.find(x => x.id === b.dataset.id); if (!t) return;
+  const act = b.dataset.act;
+  if (act === 'edit') { editing = {type: 'task', id: t.id}; renderDay(); return; }
+  if (act === 'del') S.tasks[k] = list.filter(x => x !== t);
+  else if (act === 'done') t.s = 1;
+  else if (act === 'move') {
+    S.tasks[k] = list.filter(x => x !== t);
+    const nk = key(addDays(selected, 1));
+    (S.tasks[nk] = S.tasks[nk] || []).push(t);
+  }
+  else if (act === 'cyc') t.s = t.s === 0 ? 1 : t.s === 1 ? -1 : 0;
+  else return;
+  save(); renderDay(); renderCal();
+};
+function addTask() {
+  const v = $('newTask').value.trim(); if (!v) return;
+  const k = key(selected);
+  (S.tasks[k] = S.tasks[k] || []).push({id: uid(), text: v, s: 0});
+  $('newTask').value = '';
+  save(); renderDay(); renderCal();
+}
+$('addTask').onclick = addTask;
+$('newTask').onkeydown = e => { if (e.key === 'Enter') addTask(); };
+
+/* ---------- habits ---------- */
+function renderHabits() {
+  const days = [];
+  for (let i = range - 1; i >= 0; i--) days.push(addDays(new Date(), -i));
+  let h = '<table><thead><tr><th></th>' +
+    days.map(d => `<th class="${key(d) === todayKey ? 'td' : ''}">${WD[(d.getDay() + 6) % 7]}<br>${d.getDate()}</th>`).join('') +
+    '<th>%</th></tr></thead><tbody>';
+  S.habits.forEach(hb => {
+    let ok = 0;
+    const cells = days.map(d => {
+      const k = key(d), v = hb.log[k] || 0;
+      if (v === 1) ok++;
+      return `<td><button class="c v${v}" data-h="${hb.id}" data-k="${k}">${v === 1 ? '+' : v === -1 ? '−' : ''}</button></td>`;
+    }).join('');
+    h += `<tr><th class="hn">${esc(hb.name)}<span class="rm-habit" data-rm="${hb.id}">×</span></th>${cells}<td>${Math.round(ok / days.length * 100)}%</td></tr>`;
+  });
+  h += '</tbody></table>';
+  if (!S.habits.length) h += '<p class="hint">Привычек пока нет. Добавь ниже.</p>';
+  $('grid').innerHTML = h;
+}
+$('grid').onclick = e => {
+  const rm = e.target.dataset.rm;
+  if (rm) {
+    if (confirm('Удалить привычку?')) { S.habits = S.habits.filter(x => x.id !== rm); save(); renderHabits(); }
+    return;
+  }
+  const b = e.target.closest('button[data-h]'); if (!b) return;
+  const hb = S.habits.find(x => x.id === b.dataset.h); if (!hb) return;
+  const k = b.dataset.k, v = hb.log[k] || 0;
+  const nv = v === 0 ? 1 : v === 1 ? -1 : 0;
+  if (nv) hb.log[k] = nv; else delete hb.log[k];
+  save(); renderHabits();
+};
+document.querySelectorAll('[data-range]').forEach(b => b.onclick = () => {
+  range = Number(b.dataset.range);
+  document.querySelectorAll('[data-range]').forEach(x => x.classList.toggle('on', x === b));
+  renderHabits();
+});
+function addHabit() {
+  const v = $('newHabit').value.trim(); if (!v) return;
+  S.habits.push({id: uid(), name: v, log: {}});
+  $('newHabit').value = '';
+  save(); renderHabits();
+}
+$('addHabit').onclick = addHabit;
+$('newHabit').onkeydown = e => { if (e.key === 'Enter') addHabit(); };
+
+/* ---------- long term goals ---------- */
+function renderGoals() {
+  $('goallist').innerHTML = S.goals.length ? S.goals.map(g => `
+    <div class="task-wrap" style="--n:3">
+      <div class="actions">
+        <button class="ac ed" data-act="gedit" data-id="${g.id}">${PENCIL}</button>
+        <button class="ac rm" data-act="gdel" data-id="${g.id}">${TRASH}</button>
+        <button class="ac dn" data-act="gdone" data-id="${g.id}">✓</button>
+      </div>
+      <div class="task">
+        <button class="st s${g.done ? 1 : 0}" data-act="gcyc" data-id="${g.id}">${g.done ? '✓' : ''}</button>
+        ${isEditing('goal', g.id)
+          ? `<input class="edit" value="${esc(g.text)}">`
+          : `<span class="${g.done ? 'done' : ''}" data-open="${g.id}">${esc(g.text)}</span>`}
+      </div>
+    </div>`).join('') : '<p class="hint">Целей пока нет. Добавь ниже.</p>';
+  focusEdit();
+}
+$('goallist').onclick = e => {
+  const b = e.target.closest('button');
+  if (!b) {
+    const sp = e.target.closest('[data-open]');
+    if (sp) openGoal(sp.dataset.open);
+    return;
+  }
+  const g = S.goals.find(x => x.id === b.dataset.id); if (!g) return;
+  const act = b.dataset.act;
+  if (act === 'gedit') { editing = {type: 'goal', id: g.id}; renderGoals(); return; }
+  if (act === 'gdel') S.goals = S.goals.filter(x => x !== g);
+  else if (act === 'gdone') g.done = true;
+  else if (act === 'gcyc') g.done = !g.done;
+  else return;
+  save(); renderGoals();
+};
+function addGoal() {
+  const v = $('newGoal').value.trim(); if (!v) return;
+  S.goals.push({id: uid(), text: v, done: false, details: ''});
+  $('newGoal').value = '';
+  save(); renderGoals();
+}
+$('addGoal').onclick = addGoal;
+$('newGoal').onkeydown = e => { if (e.key === 'Enter') addGoal(); };
+
+function openGoal(id) {
+  const g = S.goals.find(x => x.id === id); if (!g) return;
+  currentGoal = id;
+  $('goalTitle').textContent = g.text;
+  $('goalDetails').value = g.details || '';
+  $('goalsList').hidden = true;
+  $('goalDetail').hidden = false;
+}
+function closeGoal() {
+  currentGoal = null;
+  $('goalDetail').hidden = true;
+  $('goalsList').hidden = false;
+}
+$('backGoals').onclick = () => { closeGoal(); renderGoals(); };
+$('goalDetails').oninput = e => {
+  const g = S.goals.find(x => x.id === currentGoal); if (!g) return;
+  g.details = e.target.value;
+  save();
+};
+
+/* ---------- inline rename ---------- */
+function commitEdit(input) {
+  if (!editing) return;
+  const v = input.value.trim();
+  const {type, id} = editing;
+  editing = null;
+  if (type === 'task') {
+    const t = (S.tasks[key(selected)] || []).find(x => x.id === id);
+    if (t && v) t.text = v;
+    save(); renderDay();
+  } else {
+    const g = S.goals.find(x => x.id === id);
+    if (g && v) g.text = v;
+    save(); renderGoals();
+  }
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.classList.contains('edit')) e.target.blur();
+});
+document.addEventListener('focusout', e => {
+  if (e.target.classList.contains('edit')) commitEdit(e.target);
+});
+
+/* ---------- swipe: pull a card left to reveal its buttons ---------- */
+function bindSwipe(list) {
+  let sw = null;
+  list.addEventListener('pointerdown', e => {
+    const card = e.target.closest('.task');
+    if (!card || e.target.closest('.st, input')) return;
+    const wrap = card.parentElement;
+    const max = -64 * wrap.querySelectorAll('.ac').length;
+    sw = {el: card, wrap, id: e.pointerId, max, x: e.clientX,
+          start: wrap.classList.contains('open') ? max : 0, pos: 0, moved: false};
+  });
+  list.addEventListener('pointermove', e => {
+    if (!sw) return;
+    const dx = e.clientX - sw.x;
+    if (!sw.moved && Math.abs(dx) > 5) {
+      sw.moved = true;
+      sw.el.classList.add('drag');
+      sw.el.setPointerCapture(sw.id);
+    }
+    if (!sw.moved) return;
+    sw.pos = Math.min(0, Math.max(sw.max, sw.start + dx));
+    sw.el.style.transform = `translateX(${sw.pos}px)`;
+  });
+  const end = () => {
+    if (!sw) return;
+    const {el, wrap} = sw;
+    el.classList.remove('drag');
+    el.style.transform = '';
+    if (sw.moved) wrap.classList.toggle('open', sw.pos < sw.max / 2);
+    else wrap.classList.remove('open');
+    sw = null;
+  };
+  list.addEventListener('pointerup', end);
+  list.addEventListener('pointercancel', end);
+}
+bindSwipe($('tasklist'));
+bindSwipe($('goallist'));
+
+/* ---------- init ---------- */
+showTab('tasks');
+</script>
+</body>
+</html>
